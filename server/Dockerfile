@@ -1,39 +1,9 @@
-# # Use the official Rust image as the base image
-# FROM rust:1.68 as builder
-
-# # Set the working directory in the container
-# WORKDIR /app
-
-# # Copy the Cargo.toml and Cargo.lock files into the container
-# COPY ./Cargo.toml ./Cargo.lock ./
-
-# # Install dependencies before copying the source code (to cache dependencies)
-# RUN cargo fetch
-
-# # Copy the source code into the container
-# COPY . .
-
-# # Build the Rust project
-# RUN cargo build --release
-
-# # Final image with only the compiled binary
-# FROM debian:bullseye-slim
-
-# # Set the working directory in the container
-# WORKDIR /app
-
-# # Copy the compiled binary from the builder image
-# COPY --from=builder /app/target/release/server /usr/local/bin/server
-
-# # Expose the backend API port
-# EXPOSE 8080
-
-# # Run the server
-# CMD ["server"]
-
-
 # Step 1: Build the Rust application
-FROM rust:1.72 as builder
+FROM rust:latest as builder
+
+# Install the nightly version of Rust
+RUN rustup install nightly
+RUN rustup default nightly
 
 # Set the working directory in the container
 WORKDIR /app
