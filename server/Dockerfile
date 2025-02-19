@@ -1,36 +1,35 @@
-# Step 1: Build the Rust application
-FROM rust:latest as builder
+# Stage 1: Build the application in release mode
+FROM rustlang/rust:nightly as builder
+WORKDIR /usr/src/app
 
-# Install the nightly version of Rust
-RUN rustup install nightly
-RUN rustup default nightly
+# Install necessary dependencies (pkg-config and OpenSSL development headers)
+RUN apt-get update && apt-get install -y pkg-config libssl-dev
 
-# Set the working directory in the container
-WORKDIR /app
+# Install cargo-watch globally
+RUN cargo install cargo-watch
 
-# Copy the Cargo.toml and Cargo.lock files
+# Copy dependency manifests first to leverage Docker caching
 COPY Cargo.toml Cargo.lock ./
-
-# Fetch dependencies (this helps cache dependencies)
 RUN cargo fetch
 
-# Copy the rest of the code
-COPY . .
+# Now copy the source code
+COPY src ./src
+RUN cargo build --release  # Build in release mode for optimized performance
 
-# Build the Rust application
-RUN cargo build --release
+# Stage 2: Create a minimal runtime image
+FROM rust:slim
+WORKDIR /app
 
-# Step 2: Set up a lightweight image to run the Rust app
-FROM debian:bookworm-slim
+# Install any runtime dependencies (pkg-config and OpenSSL)
+RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies for running the Rust binary
-RUN apt-get update && apt-get install -y libssl-dev pkg-config ca-certificates && apt-get clean
+# Copy the built release binary
+COPY --from=builder /usr/src/app/target/release/server .
 
-# Copy the built binary from the builder image
-COPY --from=builder /app/target/release/server /usr/local/bin/server
+# Copy cargo-watch for hot reloading
+COPY --from=builder /usr/local/cargo/bin/cargo-watch /usr/local/bin/cargo-watch
 
-# Set the default command to run the backend
-CMD ["server"]
+EXPOSE 8000
 
-# Expose the port the app is running on
-EXPOSE 8080
+# Use cargo-watch to enable hot reloading in release mode
+CMD ["cargo", "watch", "-x", "run --release"]

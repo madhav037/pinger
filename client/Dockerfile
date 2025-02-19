@@ -1,30 +1,16 @@
-# Use an official Node.js image to build the Next.js app
-FROM node:18 AS build
-
-# Set the working directory in the container
+# Use an official Node image to build the frontend
+FROM node:20 as build
 WORKDIR /app
-
-# Copy package.json and package-lock.json (or yarn.lock) and install dependencies
-COPY package.json package-lock.json ./
+COPY package*.json ./
 RUN npm install
-
-# Copy the rest of the app's source code
 COPY . .
-
-# Build the Next.js app for production
 RUN npm run build
 
-# Use the official Node.js image again to run the app
-FROM node:18 AS production
-
-# Set the working directory in the container
+# Serve the built app using a lightweight web server (e.g., serve)
+FROM node:16-alpine
+RUN npm install -g serve
 WORKDIR /app
-
-# Copy only necessary files from the build stage
-COPY --from=build /app ./
-
-# Expose the Next.js port (default is 3000)
+# Copy the build artifacts from the build stage (default output is 'dist')
+COPY --from=build /app/dist ./dist
 EXPOSE 3000
-
-# Start the Next.js app
-CMD ["npm", "start"]
+CMD ["serve", "-s", "dist", "-l", "3000"]

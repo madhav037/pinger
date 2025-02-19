@@ -1,51 +1,38 @@
+version: "3.8"
 services:
-  frontend:
-    build:
-      context: ./client
-    ports:
-      - "3000:3000"  # Expose Next.js app on port 3000
-    environment:
-      - NODE_ENV=production
-    networks:
-      - pinger-network
-    # Comment out the "build" section for Render deployment:
-    # Use static file deployment for React/Next.js on Render.
-
   backend:
-    build:
-      context: ./server
+    build: ./server
     ports:
-      - "8080:8080"  # Expose Rust backend on port 8080
-    environment:
-      - DATABASE_URL=postgres://user:password@db:5432/pinger_db
-      - REDIS_URL=redis://redis:6379  # Ensure Redis connection string is correct if used
+      - "8000:8000"
     depends_on:
-      - db
-      # - redis  # Only include this if Redis is required
-    networks:
-      - pinger-network
-    # Comment out the "build" section for Render deployment:
-    # Use Rust build commands on Render instead.
+      - postgres
+    environment:
+      DATABASE_URL: postgres://user:password@postgres:5432/pingerlocal
+      REDIS_URL: redis://redis-17625.c305.ap-south-1-1.ec2.redns.redis-cloud.com:17625
+    volumes:
+      - ./server:/app  # Optional: Live reload for development
+    command: cargo watch -x run  # Auto-restart server on changes (only in dev)
 
-  db:
-    image: postgres:15
-    restart: always
+  postgres:
+    image: postgres:15-alpine
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: pinger_db
+      POSTGRES_DB: pingerlocal
+    volumes:
+      - pgdata:/var/lib/postgresql/data
     ports:
-      - "5432:5432"  # Expose PostgreSQL on port 5432
-    networks:
-      - pinger-network
+      - "5432:5432"
 
-  # redis:  # Uncomment this if you need Redis; remove the comment if not.
-  #   image: redis:alpine
-  #   ports:
-  #     - "6379:6379"  # Expose Redis on port 6379
-  #   networks:
-  #     - pinger-network
+  frontend:
+    build: ./client
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./client:/app  # Optional: Live reload for development
 
-networks:
-  pinger-network:
-    driver: bridge
+volumes:
+  pgdata:
+    driver: local
