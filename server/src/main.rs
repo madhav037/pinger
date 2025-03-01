@@ -1,10 +1,13 @@
-use actix_web::{get, middleware::Logger, web, App, HttpServer, Responder};
+use actix_web::{web, middleware::Logger, App, HttpServer};
+use sqlx::PgPool;
+use tokio::sync::OnceCell;
 
-#[get("/hello/{name}")]
-async fn greet(name : web::Path<String>) -> impl Responder {
-    format!("Hello {}!", name)
-}
+mod utils;
+mod routes;
+mod db;
+mod models;
 
+static DB_POOL: OnceCell<PgPool> = OnceCell::const_new();
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -16,12 +19,18 @@ async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
     env_logger::init();
 
-    HttpServer::new(|| {
+    let port = (*utils::constants::PORT).clone();
+    let address = (*utils::constants::ADDRESS).clone();
+    let pool = db::pool::init_db().await;
+    DB_POOL.set(pool.clone()).expect("Failed to set DB_POOL");
+
+    HttpServer::new(move || {
         App::new()
-        .wrap(Logger::default())    
-        .service(greet)
+        .app_data(web::Data::new(pool.clone()))
+        .wrap(Logger::default())
+        .configure(routes::user::config)
     })
-    .bind(("127.0.0.1",8000))?
+    .bind((address, port))?
     .run()
     .await
 }

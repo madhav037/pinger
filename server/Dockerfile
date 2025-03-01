@@ -7,6 +7,8 @@ RUN apt-get update && apt-get install -y pkg-config libssl-dev
 
 # Install cargo-watch globally
 RUN cargo install cargo-watch
+RUN 
+
 
 # Copy dependency manifests first to leverage Docker caching
 COPY Cargo.toml Cargo.lock ./
