@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import User from "../models/user.model.js";
+import { addTasksToRedis, modifyTasksInRedis } from "../utils/schedular.js";
 
 export const getUserById = async (req, res) => {
     const {id} = req.params;
@@ -90,8 +91,10 @@ export const addUserProject = async (req, res) => {
 
         user.projects.push({name, items});
         await user.save();
+        // add to redis
+        await addTasksToRedis(user.projects[user.projects.length - 1].items, user._id, user.projects[user.projects.length - 1]._id);
 
-        res.status(200).json(user.projects);
+        res.status(200).json(user.projects[user.projects.length - 1]);
     } catch(err) {
         res.status(500).json({message: err.message});
     }
@@ -115,6 +118,8 @@ export const updateUserProject = async (req, res) => {
         if(items) project.items = items;
 
         await user.save();
+        // update to redis
+        await modifyTasksInRedis(user_id, project_id, "update", items);
 
         res.status(200).json(project);
     } catch(err) {
@@ -137,6 +142,9 @@ export const deleteUserProject = async (req, res) => {
 
         user.projects = user.projects.filter(project => project._id != project_id);
         await user.save();
+
+        // delete from redis
+        await modifyTasksInRedis(user_id, project_id, "delete");
 
         res.status(200).json({message: "Project deleted"});
     } catch(err) {
