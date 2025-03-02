@@ -33,21 +33,23 @@ export const modifyTasksInRedis = async (user_id, project_id, action, newTasks =
         if (!tasks.length) return; // No tasks in Redis
 
         const parsedTasks = [];
-        for (let i = 0; i < tasks.length; i += 2) {
+        for (let i = 0; i < tasks.length; i++ ) {
             const task = JSON.parse(tasks[i]); // tasks[i] contains the task JSON string
-            const score = parseFloat(tasks[i + 1]); // tasks[i + 1] is the score
-            if (task.user_id === user_id) {
-                parsedTasks.push({ ...task, score });
+            console.log("task", task, user_id);
+            if (task.user_id == user_id) {
+                parsedTasks.push(JSON.stringify(task));
             }
         }
+        console.log("parsed", parsedTasks);
 
         if (action === "delete") {
             // Delete all tasks for the user_id
-            await Promise.all(parsedTasks.map(task => client.zRem("pinger", JSON.stringify(task))));
+            console.log("deleting tasks");
+            await Promise.all(parsedTasks.map(task => client.zRem("pinger", task)));
         } 
         else if (action === "update") {
             // Remove old tasks for the user_id
-            await Promise.all(parsedTasks.map(task => client.zRem("pinger", JSON.stringify(task))));
+            await Promise.all(parsedTasks.map(task => client.zRem("pinger", task)));
 
             // Add updated tasks
             const pipeline = newTasks.map(task => {
