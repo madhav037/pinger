@@ -4,20 +4,22 @@ import {
   deleteUserProject,
   getUserById,
   getUserProjects,
-  getUserProjectsById,
+  getUserProjectById,
   updateUser,
   updateUserProject,
+  addUserProject,
 } from "../controllers/user.controller.js";
+import { verifyToken } from "../utils/verifyToken.js";
 
 const router = Router();
 
-router.get("/users/:id", getUserById);
-router.put("/users/:id", updateUser);
-router.delete("/users/:id", deleteUser);
-router.get("/users/:id/projects", getUserProjects);
-router.get("/users/:id/projects/:id", getUserProjectsById);
-router.post("/users/:id/projects", updateUserProject);
-router.put("/users/:id/projects/:id", updateUserProject);
-router.delete("/users/:id/projects/:id", deleteUserProject);
+router.get("/:id", getUserById);
+router.put("/:id", verifyToken, updateUser);
+router.delete("/delete/:id", verifyToken, deleteUser);
+router.get("/:id/projects", getUserProjects);
+router.get("/:user_id/projects/:project_id", getUserProjectById);
+router.post("/:id/projects", verifyToken, addUserProject);
+router.put("/:user_id/projects/:project_id", verifyToken, updateUserProject);
+router.delete("/:user_id/projects/:project_id", verifyToken, deleteUserProject);
 
 export default router;
